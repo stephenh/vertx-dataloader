@@ -18,6 +18,7 @@ package io.engagingspaces.vertx.dataloader;
 
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
+import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.RunTestOnContext;
@@ -780,7 +781,11 @@ public class DataLoaderTest {
     private static <K> DataLoader<K, K> idLoader(DataLoaderOptions options, List<Collection> loadCalls) {
         return new DataLoader<>(keys -> {
             loadCalls.add(new ArrayList(keys));
-            return Future.succeededFuture(new ArrayList<>(keys));
+            Future<List<K>> result = Future.future();
+            Vertx.currentContext().runOnContext(e -> {
+                result.complete(new ArrayList<>(keys));
+            });
+            return result;
         }, options);
     }
 
@@ -789,7 +794,11 @@ public class DataLoaderTest {
             DataLoaderOptions options, List<Collection> loadCalls) {
         return new DataLoader<>(keys -> {
             loadCalls.add(new ArrayList(keys));
-            return Future.failedFuture(new IllegalStateException("Error"));
+            Future<List<V>> result = Future.future();
+            Vertx.currentContext().runOnContext(e -> {
+                result.fail(new IllegalStateException("Error"));
+            });
+            return result;
         }, options);
     }
 }
