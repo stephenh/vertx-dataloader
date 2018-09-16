@@ -19,11 +19,7 @@ package io.engagingspaces.vertx.dataloader;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -48,18 +44,17 @@ import java.util.stream.Collectors;
  */
 public class DataLoader<K, V> {
 
-    private final BatchLoader<K> batchLoadFunction;
+    private final BatchLoader<K, V> batchLoadFunction;
     private final DataLoaderOptions loaderOptions;
     private final CacheMap<Object, Future<V>> futureCache;
     private final LinkedHashMap<K, Future<V>> loaderQueue;
-    private final LinkedHashMap<CompositeFuture, LinkedHashMap<K, Future<V>>> dispatchedQueues;
 
     /**
      * Creates a new data loader with the provided batch load function, and default options.
      *
      * @param batchLoadFunction the batch load function to use
      */
-    public DataLoader(BatchLoader<K> batchLoadFunction) {
+    public DataLoader(BatchLoader<K, V> batchLoadFunction) {
         this(batchLoadFunction, null);
     }
 
@@ -70,13 +65,12 @@ public class DataLoader<K, V> {
      * @param options           the batch load options
      */
     @SuppressWarnings("unchecked")
-    public DataLoader(BatchLoader<K> batchLoadFunction, DataLoaderOptions options) {
+    public DataLoader(BatchLoader<K, V> batchLoadFunction, DataLoaderOptions options) {
         Objects.requireNonNull(batchLoadFunction, "Batch load function cannot be null");
         this.batchLoadFunction = batchLoadFunction;
         this.loaderOptions = options == null ? new DataLoaderOptions() : options;
         this.futureCache = loaderOptions.cacheMap().isPresent() ? (CacheMap<Object, Future<V>>) loaderOptions.cacheMap().get() : CacheMap.simpleMap();
         this.loaderQueue = new LinkedHashMap<>();
-        this.dispatchedQueues = new LinkedHashMap<>();
     }
 
     /**
@@ -100,12 +94,14 @@ public class DataLoader<K, V> {
         if (loaderOptions.batchingEnabled()) {
             loaderQueue.put(key, future);
         } else {
-            CompositeFuture compositeFuture = batchLoadFunction.load(Collections.singleton(key));
-            if (compositeFuture.succeeded()) {
-                future.complete(compositeFuture.result().resultAt(0));
-            } else {
-                future.fail(compositeFuture.cause());
-            }
+            Future<List<V>> load = batchLoadFunction.load(Collections.singleton(key));
+            load.setHandler(ar -> {
+                if (ar.succeeded()) {
+                    future.complete(ar.result().get(0));
+                } else {
+                    future.fail(ar.cause());
+                }
+            });
         }
         if (loaderOptions.cachingEnabled()) {
             futureCache.set(cacheKey, future);
@@ -135,23 +131,26 @@ public class DataLoader<K, V> {
      *
      * @return the composite future of the queued load requests
      */
-    public CompositeFuture dispatch() {
+    public Future<List<V>> dispatch() {
         if (!loaderOptions.batchingEnabled() || loaderQueue.size() == 0) {
-            return CompositeFuture.join(Collections.emptyList());
+            return Future.succeededFuture(new ArrayList<>());
         }
-        CompositeFuture batch = batchLoadFunction.load(loaderQueue.keySet());
-        dispatchedQueues.put(batch, new LinkedHashMap<>(loaderQueue));
+        // keep a copy of the futures
+        List<K> keys = new ArrayList<K>(loaderQueue.keySet());
+        List<Future<V>> futures = new ArrayList<>(loaderQueue.values());
+        System.out.println("INVOKING BATCH FOR " + keys + " " + futures);
+        Future<List<V>> batch = batchLoadFunction.load(keys);
         batch.setHandler(rh -> {
-            AtomicInteger index = new AtomicInteger(0);
-            dispatchedQueues.get(batch).forEach((key, future) -> {
-                if (batch.succeeded(index.get())) {
-                    future.complete(batch.resultAt(index.get()));
-                } else {
-                    future.fail(batch.cause(index.get()));
+            if (rh.succeeded()) {
+                System.out.println("RESULTS = " + rh.result());
+                for (int i = 0; i < futures.size(); i++) {
+                    futures.get(i).complete(rh.result().get(i));
                 }
-                index.incrementAndGet();
-            });
-            dispatchedQueues.remove(batch);
+            } else {
+                for (int i = 0; i < futures.size(); i++) {
+                  futures.get(i).fail(rh.cause());
+                }
+            }
         });
         loaderQueue.clear();
         return batch;

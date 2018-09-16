@@ -17,8 +17,10 @@
 package io.engagingspaces.vertx.dataloader;
 
 import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
 
 import java.util.Collection;
+import java.util.List;
 
 /**
  * Function that is invoked for batch loading the list of data values indicated by the provided list of keys. The
@@ -29,7 +31,7 @@ import java.util.Collection;
  * @author <a href="https://github.com/aschrijver/">Arnold Schrijver</a>
  */
 @FunctionalInterface
-public interface BatchLoader<K> {
+public interface BatchLoader<K, V> {
 
     /**
      * Batch load the provided keys and return a composite future of the result.
@@ -37,5 +39,5 @@ public interface BatchLoader<K> {
      * @param keys the list of keys to load
      * @return the composite future
      */
-    CompositeFuture load(Collection<K> keys);
+    Future<List<V>> load(Collection<K> keys);
 }

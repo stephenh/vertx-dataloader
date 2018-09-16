@@ -65,9 +65,7 @@ public class DataLoaderTest {
     public void should_Build_a_really_really_simple_data_loader() {
         AtomicBoolean success = new AtomicBoolean();
         DataLoader<Integer, Integer> identityLoader = new DataLoader<>(keys ->
-            CompositeFuture.join(keys.stream()
-                    .map(Future::succeededFuture)
-                    .collect(Collectors.toCollection(ArrayList::new))));
+          Future.succeededFuture(new ArrayList<>(keys)));
 
         Future<Integer> future1 = identityLoader.load(1);
         future1.setHandler(rh -> {
@@ -82,9 +80,7 @@ public class DataLoaderTest {
     public void should_Support_loading_multiple_keys_in_one_call() {
         AtomicBoolean success = new AtomicBoolean();
         DataLoader<Integer, Integer> identityLoader = new DataLoader<>(keys ->
-                CompositeFuture.join(keys.stream()
-                        .map(Future::succeededFuture)
-                        .collect(Collectors.toCollection(ArrayList::new))));
+          Future.succeededFuture(new ArrayList<>(keys)));
 
         CompositeFuture futureAll = identityLoader.loadMany(asList(1, 2));
         futureAll.setHandler(rh -> {
@@ -287,9 +283,9 @@ public class DataLoaderTest {
 
         Future<String> future1 = identityLoader.load("A");
         Future<String> future2 = identityLoader.load("B");
-        CompositeFuture composite = identityLoader.dispatch();
+        Future<?> composite = identityLoader.dispatch();
 
-        await().until((Callable<Boolean>) composite::succeeded);
+        await().until(composite::succeeded);
         assertThat(future1.result(), equalTo("X"));
         assertThat(future2.result(), equalTo("B"));
 
@@ -298,9 +294,9 @@ public class DataLoaderTest {
 
         Future<String> future1a = identityLoader.load("A");
         Future<String> future2a = identityLoader.load("B");
-        CompositeFuture composite2 = identityLoader.dispatch();
+        Future<?> composite2 = identityLoader.dispatch();
 
-        await().until((Callable<Boolean>) composite2::succeeded);
+        await().until(composite2::succeeded);
         assertThat(future1a.result(), equalTo("X"));
         assertThat(future2a.result(), equalTo("B"));
         assertThat(loadCalls, equalTo(Collections.singletonList(Collections.singletonList("B"))));
@@ -315,9 +311,9 @@ public class DataLoaderTest {
 
         Future<String> future1 = identityLoader.load("A");
         Future<String> future2 = identityLoader.load("B");
-        CompositeFuture composite = identityLoader.dispatch();
+        Future<?> composite = identityLoader.dispatch();
 
-        await().until((Callable<Boolean>) composite::succeeded);
+        await().until(composite::succeeded);
         assertThat(future1.result(), equalTo("X"));
         assertThat(future2.result(), equalTo("B"));
 
@@ -326,55 +322,12 @@ public class DataLoaderTest {
 
         Future<String> future1a = identityLoader.load("A");
         Future<String> future2a = identityLoader.load("B");
-        CompositeFuture composite2 = identityLoader.dispatch();
+        Future<?> composite2 = identityLoader.dispatch();
 
-        await().until((Callable<Boolean>) composite2::succeeded);
+        await().until(composite2::succeeded);
         assertThat(future1a.result(), equalTo("Y"));
         assertThat(future2a.result(), equalTo("Y"));
         assertThat(loadCalls, equalTo(Collections.singletonList(Collections.singletonList("B"))));
-    }
-
-    @Test
-    public void should_Resolve_to_error_to_indicate_failure() {
-        ArrayList<Collection> loadCalls = new ArrayList<>();
-        DataLoader<Integer, Integer> evenLoader = idLoaderWithErrors(new DataLoaderOptions(), loadCalls);
-
-        Future<Integer> future1 = evenLoader.load(1);
-        evenLoader.dispatch();
-
-        await().until(future1::isComplete);
-        assertThat(future1.failed(), is(true));
-        assertThat(future1.cause(), instanceOf(IllegalStateException.class));
-
-        Future<Integer> future2 = evenLoader.load(2);
-        evenLoader.dispatch();
-
-        await().until(future2::isComplete);
-        assertThat(future2.result(), equalTo(2));
-        assertThat(loadCalls, equalTo(asList(Collections.singletonList(1), Collections.singletonList(2))));
-    }
-
-    @Test
-    public void should_Represent_failures_and_successes_simultaneously() {
-        AtomicBoolean success = new AtomicBoolean();
-        ArrayList<Collection> loadCalls = new ArrayList<>();
-        DataLoader<Integer, Integer> evenLoader = idLoaderWithErrors(new DataLoaderOptions(), loadCalls);
-
-        Future<Integer> future1 = evenLoader.load(1);
-        Future<Integer> future2 = evenLoader.load(2);
-        Future<Integer> future3 = evenLoader.load(3);
-        Future<Integer> future4 = evenLoader.load(4);
-        CompositeFuture result = evenLoader.dispatch();
-        result.setHandler(rh -> success.set(true));
-
-        await().untilAtomic(success, is(true));
-        assertThat(future1.failed(), is(true));
-        assertThat(future1.cause(), instanceOf(IllegalStateException.class));
-        assertThat(future2.result(), equalTo(2));
-        assertThat(future3.failed(), is(true));
-        assertThat(future4.result(), equalTo(4));
-
-        assertThat(loadCalls, equalTo(Collections.singletonList(asList(1, 2, 3, 4))));
     }
 
     @Test
@@ -485,8 +438,8 @@ public class DataLoaderTest {
 
         identityLoader.dispatch().setHandler(rh -> {
             assertThat(rh.succeeded(), is(true));
-            assertThat(rh.result().resultAt(0), equalTo(keyA));
-            assertThat(rh.result().resultAt(1), equalTo(keyB));
+            assertThat(rh.result().get(0), equalTo(keyA));
+            assertThat(rh.result().get(1), equalTo(keyB));
         });
 
         assertThat(loadCalls.size(), equalTo(1));
@@ -504,7 +457,7 @@ public class DataLoaderTest {
 
         identityLoader.dispatch().setHandler(rh -> {
             assertThat(rh.succeeded(), is(true));
-            assertThat(rh.result().resultAt(0), equalTo(keyA));
+            assertThat(rh.result().get(0), equalTo(keyA));
             assertThat(identityLoader.getCacheKey(keyB), equalTo(keyB));
         });
 
@@ -558,13 +511,13 @@ public class DataLoaderTest {
     public void should_Accept_objects_with_a_complex_key() {
         ArrayList<Collection> loadCalls = new ArrayList<>();
         DataLoaderOptions options = DataLoaderOptions.create().setCacheKeyFunction(getJsonObjectCacheMapFn());
-        DataLoader<JsonObject, Integer> identityLoader = idLoader(options, loadCalls);
+        DataLoader<JsonObject, JsonObject> identityLoader = idLoader(options, loadCalls);
 
         JsonObject key1 = new JsonObject().put("id", 123);
         JsonObject key2 = new JsonObject().put("id", 123);
 
-        Future<Integer> future1 = identityLoader.load(key1);
-        Future<Integer> future2 = identityLoader.load(key2);
+        Future<?> future1 = identityLoader.load(key1);
+        Future<?> future2 = identityLoader.load(key2);
         identityLoader.dispatch();
 
         await().until(() -> future1.isComplete() && future2.isComplete());
@@ -577,18 +530,18 @@ public class DataLoaderTest {
     public void should_Clear_objects_with_complex_key() {
         ArrayList<Collection> loadCalls = new ArrayList<>();
         DataLoaderOptions options = DataLoaderOptions.create().setCacheKeyFunction(getJsonObjectCacheMapFn());
-        DataLoader<JsonObject, Integer> identityLoader = idLoader(options, loadCalls);
+        DataLoader<JsonObject, JsonObject> identityLoader = idLoader(options, loadCalls);
 
         JsonObject key1 = new JsonObject().put("id", 123);
         JsonObject key2 = new JsonObject().put("id", 123);
 
-        Future<Integer> future1 = identityLoader.load(key1);
+        Future<?> future1 = identityLoader.load(key1);
         identityLoader.dispatch();
 
         await().until(future1::isComplete);
         identityLoader.clear(key2); // clear equivalent object key
 
-        Future<Integer> future2 = identityLoader.load(key1);
+        Future<?> future2 = identityLoader.load(key1);
         identityLoader.dispatch();
 
         await().until(future2::isComplete);
@@ -601,15 +554,15 @@ public class DataLoaderTest {
     public void should_Accept_objects_with_different_order_of_keys() {
         ArrayList<Collection> loadCalls = new ArrayList<>();
         DataLoaderOptions options = DataLoaderOptions.create().setCacheKeyFunction(getJsonObjectCacheMapFn());
-        DataLoader<JsonObject, Integer> identityLoader = idLoader(options, loadCalls);
+        DataLoader<JsonObject, JsonObject> identityLoader = idLoader(options, loadCalls);
 
         JsonObject key1 = new JsonObject().put("a", 123).put("b", 321);
         JsonObject key2 = new JsonObject().put("b", 321).put("a", 123);
 
         // Fetches as expected
 
-        Future<Integer> future1 = identityLoader.load(key1);
-        Future<Integer> future2 = identityLoader.load(key2);
+        Future<?> future1 = identityLoader.load(key1);
+        Future<?> future2 = identityLoader.load(key2);
         identityLoader.dispatch();
 
         await().until(() -> future1.isComplete() && future2.isComplete());
@@ -651,9 +604,9 @@ public class DataLoaderTest {
 
         Future future1 = identityLoader.load("a");
         Future future2 = identityLoader.load("b");
-        CompositeFuture composite = identityLoader.dispatch();
+        Future<?> composite = identityLoader.dispatch();
 
-        await().until((Callable<Boolean>) composite::isComplete);
+        await().until(composite::isComplete);
         assertThat(future1.result(), equalTo("a"));
         assertThat(future2.result(), equalTo("b"));
 
@@ -664,7 +617,7 @@ public class DataLoaderTest {
         Future future2a = identityLoader.load("b");
         composite = identityLoader.dispatch();
 
-        await().until((Callable<Boolean>) composite::isComplete);
+        await().until(composite::isComplete);
         assertThat(future3.result(), equalTo("c"));
         assertThat(future2a.result(), equalTo("b"));
 
@@ -709,9 +662,9 @@ public class DataLoaderTest {
                 }).complete();
             }).complete();
         }).complete();
-        CompositeFuture composite = identityLoader.dispatch();
+        Future<?> composite = identityLoader.dispatch();
 
-        await().until((Callable<Boolean>) composite::isComplete);
+        await().until(composite::isComplete);
         assertThat(loadCalls, equalTo(
                 Collections.singletonList(asList("a", "b", "c", "d"))));
     }
@@ -731,7 +684,7 @@ public class DataLoaderTest {
                 .collect(Collectors.joining());
     }
 
-    public class CustomCacheMap implements CacheMap<String, Object> {
+    private static class CustomCacheMap implements CacheMap<String, Object> {
 
         public Map<String, Object> stash;
 
@@ -769,11 +722,10 @@ public class DataLoaderTest {
     }
 
     @SuppressWarnings("unchecked")
-    private static <K, V> DataLoader<K, V> idLoader(DataLoaderOptions options, List<Collection> loadCalls) {
+    private static <K> DataLoader<K, K> idLoader(DataLoaderOptions options, List<Collection> loadCalls) {
         return new DataLoader<>(keys -> {
             loadCalls.add(new ArrayList(keys));
-            List<Future> futures = keys.stream().map(Future::succeededFuture).collect(Collectors.toList());
-            return CompositeFuture.join(futures);
+            return Future.succeededFuture(new ArrayList<>(keys));
         }, options);
     }
 
@@ -782,23 +734,7 @@ public class DataLoaderTest {
             DataLoaderOptions options, List<Collection> loadCalls) {
         return new DataLoader<>(keys -> {
             loadCalls.add(new ArrayList(keys));
-            List<Future> futures = keys.stream()
-                    .map(key -> Future.failedFuture(new IllegalStateException("Error")))
-                    .collect(Collectors.toList());
-            return CompositeFuture.join(futures);
-        }, options);
-    }
-
-    @SuppressWarnings("unchecked")
-    private static DataLoader<Integer, Integer> idLoaderWithErrors(
-            DataLoaderOptions options, List<Collection> loadCalls) {
-        return new DataLoader<>(keys -> {
-            loadCalls.add(new ArrayList(keys));
-            List<Future> futures = keys.stream()
-                    .map(key -> key % 2 == 0 ? Future.succeededFuture(key) :
-                            Future.failedFuture(new IllegalStateException("Error")))
-                    .collect(Collectors.toList());
-            return CompositeFuture.join(futures);
+            return Future.failedFuture(new IllegalStateException("Error"));
         }, options);
     }
 }
