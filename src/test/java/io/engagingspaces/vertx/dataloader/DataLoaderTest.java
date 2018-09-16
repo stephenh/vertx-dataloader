@@ -82,27 +82,27 @@ public class DataLoaderTest {
         DataLoader<Integer, Integer> identityLoader = new DataLoader<>(keys ->
           Future.succeededFuture(new ArrayList<>(keys)));
 
-        CompositeFuture futureAll = identityLoader.loadMany(asList(1, 2));
+        Future<List<Integer>> futureAll = identityLoader.loadMany(asList(1, 2));
         futureAll.setHandler(rh -> {
             assertThat(rh.result().size(), is(2));
             success.set(rh.succeeded());
         });
         identityLoader.dispatch();
         await().untilAtomic(success, is(true));
-        assertThat(futureAll.list(), equalTo(asList(1, 2)));
+        assertThat(futureAll.result(), equalTo(asList(1, 2)));
     }
 
     @Test
     public void should_Resolve_to_empty_list_when_no_keys_supplied() {
         AtomicBoolean success = new AtomicBoolean();
-        CompositeFuture futureEmpty = identityLoader.loadMany(Collections.emptyList());
+        Future<List<Integer>> futureEmpty = identityLoader.loadMany(Collections.emptyList());
         futureEmpty.setHandler(rh -> {
             assertThat(rh.result().size(), is(0));
             success.set(rh.succeeded());
         });
         identityLoader.dispatch();
         await().untilAtomic(success, is(true));
-        assertThat(futureEmpty.list(), empty());
+        assertThat(futureEmpty.result(), empty());
     }
 
     @Test
@@ -196,12 +196,12 @@ public class DataLoaderTest {
       Future<String> future1 = identityLoader.load("A");
       identityLoader.dispatch();
 
-      CompositeFuture future2 = identityLoader.loadMany(asList("A", "B"));
+      Future<List<String>> future2 = identityLoader.loadMany(asList("A", "B"));
       identityLoader.dispatch();
 
       await().until(() -> future1.isComplete() && future2.isComplete());
       assertThat(future1.result(), equalTo("A"));
-      assertThat(future2.list(), equalTo(asList("A", "B")));
+      assertThat(future2.result(), equalTo(asList("A", "B")));
       assertThat(loadCalls, equalTo(asList(asList("A"), asList("B"))));
     }
 

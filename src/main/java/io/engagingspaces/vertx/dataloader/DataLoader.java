@@ -112,8 +112,18 @@ public class DataLoader<K, V> {
      * @param keys the list of keys to load
      * @return the composite future of the list of values
      */
-    public CompositeFuture loadMany(List<K> keys) {
-        return CompositeFuture.join(keys.stream().map(this::load).collect(Collectors.toList()));
+    public Future<List<V>> loadMany(List<K> keys) {
+        return CompositeFuture.join(keys.stream().map(this::load).collect(Collectors.toList())).map(cf -> {
+            List<V> values = new ArrayList<>();
+            for (int i = 0; i < keys.size(); i++) {
+              if (cf.succeeded(i)) {
+                  values.add(cf.resultAt(i));
+              } else {
+                  throw sneakyThrow(cf.cause(i));
+              }
+            }
+            return values;
+        });
     }
 
     /**
@@ -214,5 +224,10 @@ public class DataLoader<K, V> {
     public Object getCacheKey(K key) {
         return loaderOptions.cacheKeyFunction().isPresent() ?
                 loaderOptions.cacheKeyFunction().get().getKey(key) : key;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <E extends Throwable> RuntimeException sneakyThrow(Throwable e) throws E {
+        throw (E) e;
     }
 }
