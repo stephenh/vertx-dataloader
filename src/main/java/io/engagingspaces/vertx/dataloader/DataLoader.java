@@ -89,19 +89,11 @@ public class DataLoader<K, V> {
         if (loaderOptions.cachingEnabled() && futureCache.containsKey(cacheKey)) {
             return futureCache.get(cacheKey);
         }
-
         Future<V> future = Future.future();
         if (loaderOptions.batchingEnabled()) {
             loaderQueue.put(key, future);
         } else {
-            Future<List<V>> load = batchLoadFunction.load(Collections.singleton(key));
-            load.setHandler(ar -> {
-                if (ar.succeeded()) {
-                    future.complete(ar.result().get(0));
-                } else {
-                    future.fail(ar.cause());
-                }
-            });
+            future = batchLoadFunction.load(Collections.singleton(key)).map(list -> list.get(0));
         }
         if (loaderOptions.cachingEnabled()) {
             futureCache.set(cacheKey, future);
