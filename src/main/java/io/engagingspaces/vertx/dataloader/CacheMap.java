@@ -35,57 +35,57 @@ import io.vertx.core.Future;
  */
 public interface CacheMap<U, V> {
 
-    /**
-     * Creates a new cache map, using the default implementation that is based on a {@link java.util.LinkedHashMap}.
-     *
-     * @param <U> type parameter indicating the type of the cache keys
-     * @param <V> type parameter indicating the type of the data that is cached
-     * @return the cache map
-     */
-    static <U, V> CacheMap<U, Future<V>> simpleMap() {
-        return new DefaultCacheMap<>();
-    }
+  /**
+   * Creates a new cache map, using the default implementation that is based on a {@link java.util.LinkedHashMap}.
+   *
+   * @param <U> type parameter indicating the type of the cache keys
+   * @param <V> type parameter indicating the type of the data that is cached
+   * @return the cache map
+   */
+  static <U, V> CacheMap<U, Future<V>> simpleMap() {
+    return new DefaultCacheMap<>();
+  }
 
-    /**
-     * Checks whether the specified key is contained in the cach map.
-     *
-     * @param key the key to check
-     * @return {@code true} if the cache contains the key, {@code false} otherwise
-     */
-    boolean containsKey(U key);
+  /**
+   * Checks whether the specified key is contained in the cach map.
+   *
+   * @param key the key to check
+   * @return {@code true} if the cache contains the key, {@code false} otherwise
+   */
+  boolean containsKey(U key);
 
-    /**
-     * Gets the specified key from the cache map.
-     * <p>
-     * May throw an exception if the key does not exists, depending on the cache map implementation that is used,
-     * so be sure to check {@link CacheMap#containsKey(Object)} first.
-     *
-     * @param key the key to retrieve
-     * @return the cached value, or {@code null} if not found (depends on cache implementation)
-     */
-    V get(U key);
+  /**
+   * Gets the specified key from the cache map.
+   * <p>
+   * May throw an exception if the key does not exists, depending on the cache map implementation that is used,
+   * so be sure to check {@link CacheMap#containsKey(Object)} first.
+   *
+   * @param key the key to retrieve
+   * @return the cached value, or {@code null} if not found (depends on cache implementation)
+   */
+  V get(U key);
 
-    /**
-     * Creates a new cache map entry with the specified key and value, or updates the value if the key already exists.
-     *
-     * @param key   the key to cache
-     * @param value the value to cache
-     * @return the cache map for fluent coding
-     */
-    CacheMap<U, V> set(U key, V value);
+  /**
+   * Creates a new cache map entry with the specified key and value, or updates the value if the key already exists.
+   *
+   * @param key   the key to cache
+   * @param value the value to cache
+   * @return the cache map for fluent coding
+   */
+  CacheMap<U, V> set(U key, V value);
 
-    /**
-     * Deletes the entry with the specified key from the cache map, if it exists.
-     *
-     * @param key the key to delete
-     * @return the cache map for fluent coding
-     */
-    CacheMap<U, V> delete(U key);
+  /**
+   * Deletes the entry with the specified key from the cache map, if it exists.
+   *
+   * @param key the key to delete
+   * @return the cache map for fluent coding
+   */
+  CacheMap<U, V> delete(U key);
 
-    /**
-     * Clears all entries of the cache map
-     *
-     * @return the cache map for fluent coding
-     */
-    CacheMap<U, V> clear();
+  /**
+   * Clears all entries of the cache map
+   *
+   * @return the cache map for fluent coding
+   */
+  CacheMap<U, V> clear();
 }

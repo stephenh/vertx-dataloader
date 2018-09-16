@@ -31,55 +31,50 @@ import java.util.Map;
  */
 public class DefaultCacheMap<U, V> implements CacheMap<U, V> {
 
-    private Map<U, V> cache;
+  private Map<U, V> cache;
 
-    /**
-     * Default constructor
-     */
-    public DefaultCacheMap() {
-        cache = new HashMap<>();
-    }
+  /**
+   * Default constructor
+   */
+  public DefaultCacheMap() {
+    cache = new HashMap<>();
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public boolean containsKey(U key) {
-        return cache.containsKey(key);
-    }
+  /**
+   * {@inheritDoc}
+   */
+  @Override public boolean containsKey(U key) {
+    return cache.containsKey(key);
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public V get(U key) {
-        return cache.get(key);
-    }
+  /**
+   * {@inheritDoc}
+   */
+  @Override public V get(U key) {
+    return cache.get(key);
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public CacheMap<U, V> set(U key, V value) {
-        cache.put(key, value);
-        return this;
-    }
+  /**
+   * {@inheritDoc}
+   */
+  @Override public CacheMap<U, V> set(U key, V value) {
+    cache.put(key, value);
+    return this;
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public CacheMap<U, V> delete(U key) {
-        cache.remove(key);
-        return this;
-    }
+  /**
+   * {@inheritDoc}
+   */
+  @Override public CacheMap<U, V> delete(U key) {
+    cache.remove(key);
+    return this;
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public CacheMap<U, V> clear() {
-        cache.clear();
-        return this;
-    }
+  /**
+   * {@inheritDoc}
+   */
+  @Override public CacheMap<U, V> clear() {
+    cache.clear();
+    return this;
+  }
 }

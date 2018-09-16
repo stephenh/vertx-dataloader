@@ -30,14 +30,13 @@ import java.util.List;
  *
  * @author <a href="https://github.com/aschrijver/">Arnold Schrijver</a>
  */
-@FunctionalInterface
-public interface BatchLoader<K, V> {
+@FunctionalInterface public interface BatchLoader<K, V> {
 
-    /**
-     * Batch load the provided keys and return a composite future of the result.
-     *
-     * @param keys the list of keys to load
-     * @return the composite future
-     */
-    Future<List<V>> load(Collection<K> keys);
+  /**
+   * Batch load the provided keys and return a composite future of the result.
+   *
+   * @param keys the list of keys to load
+   * @return the composite future
+   */
+  Future<List<V>> load(Collection<K> keys);
 }

@@ -1,25 +1,25 @@
 buildscript {
-    repositories {
-        jcenter()
-    }
-    dependencies {
-        classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7'
-    }
+  repositories {
+    jcenter()
+  }
+  dependencies {
+    classpath 'com.jfrog.bintray.gradle:gradle-bintray-plugin:1.7'
+  }
 }
 
 apply plugin: 'maven-publish'
 
 publishing {
-    repositories {
-        maven {
-            url 'https://dl.bintray.com/engagingspaces/maven'
-        }
+  repositories {
+    maven {
+      url 'https://dl.bintray.com/engagingspaces/maven'
     }
+  }
 }
 
 ext {
-    vertxVersion = '3.5.3'
-    junitVersion = '4.12'
+  vertxVersion = '3.5.3'
+  junitVersion = '4.12'
 }
 
 apply plugin: 'java'
@@ -28,24 +28,24 @@ apply plugin: 'java'
 apply from: "$projectDir/gradle/publishing.gradle"
 
 repositories {
-    mavenLocal()
-    mavenCentral()
-    jcenter()
-    maven {
-        url 'https://dl.bintray.com/engagingspaces/maven'
-    }
+  mavenLocal()
+  mavenCentral()
+  jcenter()
+  maven {
+    url 'https://dl.bintray.com/engagingspaces/maven'
+  }
 }
 
 group = 'io.engagingspaces'
 version = '1.0.0'
 
 compileJava {
-    sourceCompatibility = 1.8
-    targetCompatibility = 1.8
+  sourceCompatibility = 1.8
+  targetCompatibility = 1.8
 
-    // dependsOn project.tasks.docProcessing
-    options.compilerArgs = [ "-Xlint:unchecked", "-Xdiags:verbose" ]
-    options.compilerArgs.addAll(['--release', '8'])
+  // dependsOn project.tasks.docProcessing
+  options.compilerArgs = ["-Xlint:unchecked", "-Xdiags:verbose"]
+  options.compilerArgs.addAll(['--release', '8'])
 }
 
 test {
@@ -54,14 +54,14 @@ test {
 }
 
 dependencies {
-    compile "io.vertx:vertx-core:$vertxVersion"
+  compile "io.vertx:vertx-core:$vertxVersion"
 
-    testCompile "junit:junit:$junitVersion"
-    testCompile "org.hamcrest:hamcrest-junit:2.0.0.0"
-    testCompile "io.vertx:vertx-unit:$vertxVersion"
+  testCompile "junit:junit:$junitVersion"
+  testCompile "org.hamcrest:hamcrest-junit:2.0.0.0"
+  testCompile "io.vertx:vertx-unit:$vertxVersion"
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion = '4.10.1'
-    distributionUrl = "http://services.gradle.org/distributions/gradle-4.10.1-all.zip"
+  gradleVersion = '4.10.1'
+  distributionUrl = "http://services.gradle.org/distributions/gradle-4.10.1-all.zip"
 }

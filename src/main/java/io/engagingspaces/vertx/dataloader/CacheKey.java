@@ -23,14 +23,13 @@ package io.engagingspaces.vertx.dataloader;
  * @param <K>   type parameter indicating the type of the input key
  * @author <a href="https://github.com/aschrijver/">Arnold Schrijver</a>
  */
-@FunctionalInterface
-public interface CacheKey<K> {
+@FunctionalInterface public interface CacheKey<K> {
 
-    /**
-     * Returns the cache key that is created from the provided input key.
-     *
-     * @param input the input key
-     * @return the cache key
-     */
-    Object getKey(K input);
+  /**
+   * Returns the cache key that is created from the provided input key.
+   *
+   * @param input the input key
+   * @return the cache key
+   */
+  Object getKey(K input);
 }
