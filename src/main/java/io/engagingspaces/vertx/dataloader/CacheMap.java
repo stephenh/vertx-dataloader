@@ -17,7 +17,7 @@
 package io.engagingspaces.vertx.dataloader;
 
 import io.engagingspaces.vertx.dataloader.impl.DefaultCacheMap;
-import io.vertx.core.Future;
+import io.trane.future.Future;
 
 /**
  * Cache map interface for data loaders that use caching.

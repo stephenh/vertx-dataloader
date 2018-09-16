@@ -16,15 +16,13 @@
 
 package io.engagingspaces.vertx.dataloader;
 
-import io.vertx.core.CompositeFuture;
-import io.vertx.core.Future;
+import io.trane.future.Future;
 
 import java.util.Collection;
 import java.util.List;
 
 /**
- * Function that is invoked for batch loading the list of data values indicated by the provided list of keys. The
- * function returns a {@link CompositeFuture} to aggregate results of individual load requests.
+ * Function that is invoked for batch loading the list of data values indicated by the provided list of keys.
  *
  * @param <K> type parameter indicating the type of keys to use for data load requests.
  *

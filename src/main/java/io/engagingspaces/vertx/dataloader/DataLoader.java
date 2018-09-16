@@ -16,11 +16,14 @@
 
 package io.engagingspaces.vertx.dataloader;
 
+
+import io.trane.future.Promise;
 import io.vertx.core.CompositeFuture;
-import io.vertx.core.Future;
+import io.trane.future.Future;
 
 import java.util.*;
-import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toList;
 
 /**
  * Data loader is a utility class that allows batch loading of data that is identified by a set of unique keys. For
@@ -88,7 +91,7 @@ public class DataLoader<K, V> {
     if (loaderOptions.cachingEnabled() && futureCache.containsKey(cacheKey)) {
       return futureCache.get(cacheKey);
     }
-    Future<V> future = Future.future();
+    Future<V> future = Promise.apply();
     if (loaderOptions.batchingEnabled()) {
       loaderQueue.put(key, future);
     } else {
@@ -115,14 +118,11 @@ public class DataLoader<K, V> {
    * @return the composite future of the list of values
    */
   public Future<List<V>> loadMany(List<K> keys) {
-    return CompositeFuture.join(keys.stream().map(this::load).collect(Collectors.toList())).map(cf -> {
+    List<Future<V>> list = keys.stream().map(this::load).collect(toList());
+    return Future.join(list).map(v -> {
       List<V> values = new ArrayList<>();
       for (int i = 0; i < keys.size(); i++) {
-        if (cf.succeeded(i)) {
-          values.add(cf.resultAt(i));
-        } else {
-          throw sneakyThrow(cf.cause(i));
-        }
+        list.get(i).onSuccess(values::add);
       }
       return values;
     });
@@ -137,21 +137,19 @@ public class DataLoader<K, V> {
    */
   public Future<List<V>> dispatch() {
     if (!loaderOptions.batchingEnabled() || loaderQueue.size() == 0) {
-      return Future.succeededFuture(new ArrayList<>());
+      return Future.value(new ArrayList<>());
     }
     // keep a copy of the futures
     List<K> keys = new ArrayList<K>(loaderQueue.keySet());
     List<Future<V>> futures = new ArrayList<>(loaderQueue.values());
     Future<List<V>> batch = batchLoadFunction.load(keys);
-    batch.setHandler(rh -> {
-      if (rh.succeeded()) {
-        for (int i = 0; i < futures.size(); i++) {
-          futures.get(i).complete(rh.result().get(i));
-        }
-      } else {
-        for (int i = 0; i < futures.size(); i++) {
-          futures.get(i).fail(rh.cause());
-        }
+    batch.onSuccess(result -> {
+      for (int i = 0; i < futures.size(); i++) {
+        ((Promise<V>) futures.get(i)).setValue(result.get(i));
+      }
+    }).onFailure(cause -> {
+      for (int i = 0; i < futures.size(); i++) {
+        ((Promise<V>) futures.get(i)).setException(cause);
       }
     });
     loaderQueue.clear();
@@ -191,7 +189,7 @@ public class DataLoader<K, V> {
   public DataLoader<K, V> prime(K key, V value) {
     Object cacheKey = getCacheKey(key);
     if (!futureCache.containsKey(cacheKey)) {
-      futureCache.set(cacheKey, Future.succeededFuture(value));
+      futureCache.set(cacheKey, Future.value(value));
     }
     return this;
   }
@@ -206,7 +204,7 @@ public class DataLoader<K, V> {
   public DataLoader<K, V> prime(K key, Exception error) {
     Object cacheKey = getCacheKey(key);
     if (!futureCache.containsKey(cacheKey)) {
-      futureCache.set(cacheKey, Future.failedFuture(error));
+      futureCache.set(cacheKey, Future.exception(error));
     }
     return this;
   }
