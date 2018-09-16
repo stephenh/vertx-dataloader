@@ -16,8 +16,6 @@
 
 package io.engagingspaces.vertx.dataloader;
 
-import io.vertx.core.json.JsonObject;
-
 import java.util.Objects;
 import java.util.Optional;
 
@@ -32,6 +30,8 @@ public class DataLoaderOptions {
     private boolean cachingEnabled;
     private CacheKey cacheKeyFunction;
     private CacheMap cacheMap;
+    private Dispatcher dispatcher;
+    private Object context;
 
     /**
      * Creates a new data loader options with default settings.
@@ -56,22 +56,8 @@ public class DataLoaderOptions {
         this.cachingEnabled = other.cachingEnabled;
         this.cacheKeyFunction = other.cacheKeyFunction;
         this.cacheMap = other.cacheMap;
-    }
-
-    /**
-     * Creates a new data loader options with values provided as JSON.
-     * <p>
-     * Note that only json-serializable options can be set with this constructor. Others,
-     * like {@link DataLoaderOptions#cacheKeyFunction} must be set manually after creation.
-     * <p>
-     * Note also that this makes it incompatible with true Vert.x data objects, so beware if you use it that way.
-     *
-     * @param json the serialized data loader options to set
-     */
-    public DataLoaderOptions(JsonObject json) {
-        Objects.requireNonNull(json, "Json cannot be null");
-        this.batchingEnabled = json.getBoolean("batchingEnabled");
-        this.batchingEnabled = json.getBoolean("cachingEnabled");
+        this.dispatcher = other.dispatcher;
+        this.context = other.context;
     }
 
     /**
@@ -157,4 +143,39 @@ public class DataLoaderOptions {
         this.cacheMap = cacheMap;
         return this;
     }
+
+    /**
+     * Gets the (optional) dispatcher that is used for automatic dispatching, if enabled.
+     */
+    public Optional<Dispatcher> dispatcher() {
+        return Optional.ofNullable(dispatcher);
+    }
+
+    /**
+     * Sets the dispather to use for automatic dispatching.
+     *
+     * @param dispatcher the dispatcher used for automatic dispatching
+     * @return the data loader options for fluent coding
+     */
+    public DataLoaderOptions setDispatcher(Dispatcher dispatcher) {
+        this.dispatcher = dispatcher;
+        return this;
+    }
+
+    /**
+     * @return The (optional) context that is used for automatic dispatching.
+     */
+    public Optional<Object> context() {
+        return Optional.ofNullable(context);
+    }
+
+    /**
+     * @param context The context that is used for automatic dispatching.
+     * @return the data loader options for fluent coding
+     */
+    public DataLoaderOptions setContext(Object context) {
+        this.context = context;
+        return this;
+    }
+
 }

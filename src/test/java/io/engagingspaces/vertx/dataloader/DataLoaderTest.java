@@ -19,6 +19,7 @@ package io.engagingspaces.vertx.dataloader;
 import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.RunTestOnContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import org.junit.Before;
@@ -667,6 +668,45 @@ public class DataLoaderTest {
         await().until(composite::isComplete);
         assertThat(loadCalls, equalTo(
                 Collections.singletonList(asList("a", "b", "c", "d"))));
+    }
+
+    @Test
+    public void should_Batch_automatically_with_explicit_context(TestContext t) {
+        ArrayList<Collection> loadCalls = new ArrayList<>();
+        Object context = 1L;
+        Dispatcher dispatcher = new Dispatcher();
+        DataLoader<Integer, Integer> identityLoader = idLoader(
+          new DataLoaderOptions().setDispatcher(dispatcher).setContext(context), loadCalls);
+        Future<Integer> future1 = identityLoader.load(1);
+        Future<Integer> future2 = identityLoader.load(2);
+        CompositeFuture.join(future1, future2).setHandler(t.asyncAssertSuccess(ar -> {
+            assertThat(future1.result(), equalTo(1));
+            assertThat(future2.result(), equalTo(2));
+            assertThat(loadCalls, equalTo(Collections.singletonList(asList(1, 2))));
+        }));
+    }
+
+    @Test
+    public void should_Batch_automatically_between_explicit_contexts(TestContext t) {
+        ArrayList<Collection> loadCalls = new ArrayList<>();
+        Dispatcher dispatcher = new Dispatcher();
+        // do batching for the 1st request
+        DataLoader<Integer, Integer> identityLoader = idLoader(
+          new DataLoaderOptions().setDispatcher(dispatcher).setContext(1L), loadCalls);
+        Future<Integer> future1 = identityLoader.load(1);
+        Future<Integer> future2 = identityLoader.load(2);
+        // and the 2nd request will get separate batches
+        identityLoader = idLoader(
+          new DataLoaderOptions().setDispatcher(dispatcher).setContext(1L), loadCalls);
+        Future<Integer> future3 = identityLoader.load(3);
+        Future<Integer> future4 = identityLoader.load(4);
+        CompositeFuture.join(future1, future2, future3, future4).setHandler(t.asyncAssertSuccess(ar -> {
+            assertThat(future1.result(), equalTo(1));
+            assertThat(future2.result(), equalTo(2));
+            assertThat(future3.result(), equalTo(3));
+            assertThat(future4.result(), equalTo(4));
+            assertThat(loadCalls, containsInAnyOrder(asList(1, 2), asList(3, 4)));
+        }));
     }
 
     @Test

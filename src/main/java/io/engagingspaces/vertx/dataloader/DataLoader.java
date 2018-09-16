@@ -98,6 +98,9 @@ public class DataLoader<K, V> {
         if (loaderOptions.cachingEnabled()) {
             futureCache.set(cacheKey, future);
         }
+        if (loaderOptions.dispatcher().isPresent() && loaderOptions.context().isPresent()) {
+            loaderOptions.dispatcher().get().queue(this, loaderOptions.context().get());
+        }
         return future;
     }
 
@@ -140,11 +143,9 @@ public class DataLoader<K, V> {
         // keep a copy of the futures
         List<K> keys = new ArrayList<K>(loaderQueue.keySet());
         List<Future<V>> futures = new ArrayList<>(loaderQueue.values());
-        System.out.println("INVOKING BATCH FOR " + keys + " " + futures);
         Future<List<V>> batch = batchLoadFunction.load(keys);
         batch.setHandler(rh -> {
             if (rh.succeeded()) {
-                System.out.println("RESULTS = " + rh.result());
                 for (int i = 0; i < futures.size(); i++) {
                     futures.get(i).complete(rh.result().get(i));
                 }
