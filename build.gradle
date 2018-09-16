@@ -23,7 +23,8 @@ ext {
 }
 
 apply plugin: 'java'
-apply from: "$projectDir/gradle/coverage.gradle"
+// doesn't work on jdk11
+// apply from: "$projectDir/gradle/coverage.gradle"
 apply from: "$projectDir/gradle/publishing.gradle"
 
 repositories {
@@ -54,13 +55,19 @@ compileJava {
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
 
-    dependsOn project.tasks.docProcessing
+    // dependsOn project.tasks.docProcessing
     options.compilerArgs = [ "-Xlint:unchecked", "-Xdiags:verbose" ]
+    options.compilerArgs.addAll(['--release', '8'])
+}
+
+test {
+  scanForTestClasses = false
+  include '**/*Test.class'
 }
 
 dependencies {
     compile "io.vertx:vertx-core:$vertxVersion"
-    compileOnly "io.vertx:vertx-docgen:$vertxVersion"
+    // compileOnly "io.vertx:vertx-docgen:$vertxVersion"
 
     testCompile "junit:junit:$junitVersion"
     testCompile 'org.awaitility:awaitility:2.0.0'
